@@ -18,6 +18,13 @@ jobs:
       run: |
         VER=$(cat VERSION)
         echo "VERSION=$VER" >> $GITHUB_ENV
+        
+    - name: Bump version
+      uses: remorses/bump-version@js
+      with:
+        version_file: ./VERSION
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v1
@@ -37,9 +44,3 @@ jobs:
         tags: |
           ghcr.io/${{ github.repository }}:${{ env.VERSION }}
           ghcr.io/${{ github.repository }}:latest
-    - name: Bump version
-      uses: remorses/bump-version@js
-      with:
-        version_file: ./VERSION
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
