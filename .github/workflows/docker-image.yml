@@ -34,8 +34,8 @@ jobs:
       with:
         push: true
         tags: |
-          ${{ env.USER }}/${{ env.REPO }}:${{ env.VERSION }}
-          ${{ env.USER }}/${{ env.REPO }}:latest
+          ${{ env.GITHUB_REPOSITORY }}:${{ env.VERSION }}
+          ${{ env.GITHUB_REPOSITORY }}:latest
     - name: Bump version
       uses: remorses/bump-version@js
       with:
