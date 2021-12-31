@@ -14,6 +14,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Set variables
+      run: |
+        VER=$(cat VERSION)
+        echo "VERSION=$VER" >> $GITHUB_ENV
+
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v1
       with:
@@ -22,6 +27,18 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build the Docker image and push
-      run: |
-        docker build . --tag ghcr.io/anacozero/nut-upsd:latest
-        docker push ghcr.io/anacozero/nut-upsd:latest
+    #   run: |
+    #     docker build . --tag ghcr.io/anacozero/nut-upsd:latest
+    #     docker push ghcr.io/anacozero/nut-upsd:latest
+      uses: docker/build-push-action@v2
+      with:
+        push: true
+        tags: |
+          ${{ env.USER }}/${{ env.REPO }}:${{ env.VERSION }}
+          ${{ env.USER }}/${{ env.REPO }}:latest
+    - name: Bump version
+      uses: remorses/bump-version@js
+      with:
+        version_file: ./VERSION
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
