@@ -35,8 +35,8 @@ jobs:
         context: .
         push: true
         tags: |
-          ${{ github.repository }}:${{ env.VERSION }}
-          ${{ github.repository }}:latest
+          ghcr.io/${{ github.repository }}:${{ env.VERSION }}
+          ghcr.io/${{ github.repository }}:latest
     - name: Bump version
       uses: remorses/bump-version@js
       with:
