@@ -30,7 +30,7 @@ RUN set -ex; \
     cd /tmp; \
     wget http://www.networkupstools.org/source/2.7/nut-$NUT_VERSION.tar.gz; \
     wget http://www.networkupstools.org/source/2.7/nut-$NUT_VERSION.tar.gz.sig; \
-    gpg --fetch-keys http://www.networkupstools.org/source/nut-key.gpg; \
+    gpg --fetch-keys https://www.networkupstools.org/source/nut-key.gpg; \
 	tar xfz nut-$NUT_VERSION.tar.gz; \
     gpg --verify nut-$NUT_VERSION.tar.gz.sig; \
 	cd nut-$NUT_VERSION \
