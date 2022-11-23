@@ -1,8 +1,8 @@
-FROM alpine:3.16.1
+FROM alpine:3.17
 
 LABEL maintainer="anacozero"
 
-ENV NUT_VERSION 2.7.4
+ENV NUT_VERSION 2.8.0
 
 ENV UPS_NAME="ups"
 ENV UPS_DESC="UPS"
@@ -28,11 +28,11 @@ RUN set -ex; \
 	; \
 	# download and extract
     cd /tmp; \
-    wget http://www.networkupstools.org/source/2.7/nut-$NUT_VERSION.tar.gz; \
-    wget http://www.networkupstools.org/source/2.7/nut-$NUT_VERSION.tar.gz.sig; \
-    gpg --fetch-keys https://www.networkupstools.org/source/nut-key.gpg; \
+    wget http://www.networkupstools.org/source/2.8/nut-$NUT_VERSION.tar.gz; \
+    # wget http://www.networkupstools.org/source/2.8/nut-$NUT_VERSION.tar.gz.sig; \
+    # gpg --fetch-keys https://www.networkupstools.org/source/nut-key.gpg; \
 	tar xfz nut-$NUT_VERSION.tar.gz; \
-    gpg --verify nut-$NUT_VERSION.tar.gz.sig; \
+    # gpg --verify nut-$NUT_VERSION.tar.gz.sig; \
 	cd nut-$NUT_VERSION \
 	; \
 	# build
