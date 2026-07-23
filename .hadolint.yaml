@@ -2,10 +2,5 @@
 # package versions from its repos, which would break reproducible rebuilds.
 # The base image is digest-pinned instead, and the monthly rebuild keeps
 # packages patched.
-#
-# DL3003: the build stage compiles NUT from source and must `cd` into the
-# extracted, version-numbered source tree inside a single RUN layer. WORKDIR
-# cannot express that, so `cd` is intentional here.
 ignored:
   - DL3018
-  - DL3003
