@@ -1,6 +1,13 @@
 version: 2
 updates:
-  - package-ecosystem: "docker" 
+  # Keeps the Alpine base image tag + digest current in the Dockerfile.
+  - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+
+  # Keeps GitHub Actions (including SHA-pinned ones) up to date.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
