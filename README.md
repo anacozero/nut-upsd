@@ -1,12 +1,19 @@
 # Network UPS Tools server
 
 Docker image for a [Network UPS Tools](https://networkupstools.org/) (NUT) server.
-It compiles NUT from a GPG-verified source tarball and exposes `upsd` on port
+It installs NUT from Alpine's maintained package and exposes `upsd` on port
 `3493` for USB-attached UPS hardware.
 
 - Multi-architecture: `linux/amd64` and `linux/arm64` (e.g. Raspberry Pi).
-- Minimal, multi-stage build — no compiler or build tooling in the final image.
+- Small, single-layer image built on a digest-pinned Alpine base.
+- The daemons run as the unprivileged `nut` user.
 - Configuration is generated at start-up from environment variables.
+
+NUT is kept current through the base image: security fixes ship as Alpine
+package revisions (picked up by the monthly rebuild) and feature versions
+arrive when the Alpine base is bumped (a Dependabot pull request). See the
+[Alpine `nut` package](https://pkgs.alpinelinux.org/package/edge/community/x86_64/nut)
+and the [NUT documentation](https://networkupstools.org/docs/).
 
 ## Usage
 
