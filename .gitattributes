@@ -1,0 +1,7 @@
+# Shell scripts and Docker files must use LF so they work inside Linux images
+# regardless of the host that committed them.
+* text=auto eol=lf
+docker-entrypoint text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.sh text eol=lf

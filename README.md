@@ -1,65 +1,91 @@
 # Network UPS Tools server
 
-Docker image for Network UPS Tools server.
+Docker image for a [Network UPS Tools](https://networkupstools.org/) (NUT) server.
+It compiles NUT from a GPG-verified source tarball and exposes `upsd` on port
+`3493` for USB-attached UPS hardware.
+
+- Multi-architecture: `linux/amd64` and `linux/arm64` (e.g. Raspberry Pi).
+- Minimal, multi-stage build — no compiler or build tooling in the final image.
+- Configuration is generated at start-up from environment variables.
 
 ## Usage
 
-This image provides a complete UPS monitoring service (USB driver only).
-
-Start the container:
-
 ```console
-# docker run \
-	--name nut-upsd \
-	--detach \
-	--publish 3493:3493 \
-	--device /dev/bus/usb/xxx/yyy \
-	--env SHUTDOWN_CMD="my-shutdown-command-from-container" \
-	ghcr.io/anacozero/nut-upsd
+docker run \
+    --name nut-upsd \
+    --detach \
+    --publish 3493:3493 \
+    --device /dev/bus/usb/xxx/yyy \
+    --env SHUTDOWN_CMD="my-shutdown-command-from-container" \
+    ghcr.io/anacozero/nut-upsd
 ```
 
-## Auto configuration via environment variables
+### docker compose
 
-This image supports customization via environment variables.
+```yaml
+services:
+  nut-upsd:
+    image: ghcr.io/anacozero/nut-upsd
+    restart: unless-stopped
+    ports:
+      - "3493:3493"
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    environment:
+      UPS_DESC: "Eaton 5SC"
+      SHUTDOWN_CMD: "my-shutdown-command-from-container"
+```
 
-### UPS_NAME
+## Configuration
 
-*Default value*: `ups`
+Configuration is driven by environment variables.
 
-The name of the UPS.
+| Variable        | Default                                    | Description                                                                 |
+| --------------- | ------------------------------------------ | --------------------------------------------------------------------------- |
+| `UPS_NAME`      | `ups`                                      | Name of the UPS as seen by clients.                                         |
+| `UPS_DESC`      | `UPS`                                      | Human-readable description reported to clients.                             |
+| `UPS_DRIVER`    | `usbhid-ups`                               | NUT driver used to talk to the UPS.                                         |
+| `UPS_PORT`      | `auto`                                     | Port the UPS is connected to (`auto` for USB).                              |
+| `ADMIN_PASSWORD`| *(random)*                                 | Password for the `admin` user (full control). Randomly generated if unset.  |
+| `API_PASSWORD`  | *(random)*                                 | Password for the `monitor`/`upsmon` user. Randomly generated if unset.      |
+| `SHUTDOWN_CMD`  | `echo 'System shutdown not configured!'`   | Command `upsmon` runs, inside the container, when a shutdown is required.   |
 
-### UPS_DESC
+### Secrets
 
-*Default value*: `Eaton 5SC`
+`ADMIN_PASSWORD` and `API_PASSWORD` can instead be read from a file by setting
+`ADMIN_PASSWORD_FILE` / `API_PASSWORD_FILE`. This keeps secrets out of the
+container's environment (`docker inspect`) and works with Docker/Kubernetes
+secrets:
 
-This allows you to set a brief description that upsd will provide to clients that ask for a list of connected equipment.
+```yaml
+services:
+  nut-upsd:
+    image: ghcr.io/anacozero/nut-upsd
+    environment:
+      API_PASSWORD_FILE: /run/secrets/nut_api_password
+    secrets:
+      - nut_api_password
+secrets:
+  nut_api_password:
+    file: ./nut_api_password.txt
+```
 
-### UPS_DRIVER
+If a password is neither set directly nor via a `*_FILE`, a random one is
+generated at start-up.
 
-*Default value*: `usbhid-ups`
+## Users
 
-This specifies which program will be monitoring this UPS.
+The server defines two fixed accounts:
 
-### UPS_PORT
+- `admin` — full administrative control (`set`, `fsd`, all instant commands).
+- `monitor` — the account `upsmon` uses to monitor the UPS.
 
-*Default vaue*: `auto`
+## Notes
 
-This is the serial port where the UPS is connected.
-
-### API_USER
-
-*Default vaue*: `upsmon`
-
-This is the username used for communication between upsmon and upsd processes.
-
-### API_PASSWORD
-
-*Default vaue*: `secret`
-
-This is the password for the upsmon user.
-
-### SHUTDOWN_CMD
-
-*Default vaue*: `echo 'System shutdown not configured!'`
-
-This is the command upsmon will run when the system needs to be brought down. The command will be run from inside the container.
+- **USB access:** the UPS device must be passed into the container
+  (`--device /dev/bus/usb/...` or by mounting `/dev/bus/usb`). The driver runs as
+  the unprivileged `nut` user.
+- **Health check:** the container reports healthy only while `upsd` can read the
+  UPS (`upsc <UPS_NAME>@localhost`).
+- **Network exposure:** `upsd` listens on `0.0.0.0:3493` without transport
+  encryption. Restrict access to a trusted network.

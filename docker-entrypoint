@@ -1,14 +1,29 @@
-#!/bin/sh -ex
+#!/bin/sh
+# Generate NUT configuration from environment, then hand off to the daemons.
+# NB: no `set -x` here — it would echo the generated passwords into the logs.
+set -eu
 
-if [ -z "$API_PASSWORD" ]
-then
-   API_PASSWORD=$(dd if=/dev/urandom bs=18 count=1 2>/dev/null | base64)
-fi
+# Resolve a password: prefer the contents of a *_FILE path (Docker/K8s secrets),
+# then the plain value, otherwise generate a random one.
+#   $1 = current value   $2 = path from <VAR>_FILE (may be empty)
+load_secret() {
+	_val="$1"
+	_file="$2"
+	if [ -n "$_file" ]; then
+		if [ ! -r "$_file" ]; then
+			echo "ERROR: secret file '$_file' is not readable" >&2
+			exit 1
+		fi
+		_val="$(cat "$_file")"
+	fi
+	if [ -z "$_val" ]; then
+		_val="$(dd if=/dev/urandom bs=18 count=1 2>/dev/null | base64)"
+	fi
+	printf '%s' "$_val"
+}
 
-if [ -z "$ADMIN_PASSWORD" ]
-then
-   ADMIN_PASSWORD=$(dd if=/dev/urandom bs=18 count=1 2>/dev/null | base64)
-fi
+API_PASSWORD="$(load_secret "${API_PASSWORD:-}" "${API_PASSWORD_FILE:-}")"
+ADMIN_PASSWORD="$(load_secret "${ADMIN_PASSWORD:-}" "${ADMIN_PASSWORD_FILE:-}")"
 
 cat >/etc/nut/ups.conf <<EOF
 [$UPS_NAME]
@@ -37,9 +52,17 @@ MONITOR $UPS_NAME@localhost 1 monitor $API_PASSWORD master
 SHUTDOWNCMD "$SHUTDOWN_CMD"
 EOF
 
-chgrp -R nut /etc/nut /dev/bus/usb
-chmod -R o-rwx /etc/nut
+# Restrict the generated config (contains passwords) to root and the nut group.
+chown -R root:nut /etc/nut
+chmod 640 /etc/nut/ups.conf /etc/nut/upsd.conf /etc/nut/upsd.users /etc/nut/upsmon.conf
 
-/usr/sbin/upsdrvctl start
-/usr/sbin/upsd
-exec /usr/sbin/upsmon -D
+# The USB driver runs as the unprivileged nut user and needs access to the device.
+if [ -d /dev/bus/usb ]; then
+	chgrp -R nut /dev/bus/usb
+else
+	echo "WARNING: /dev/bus/usb not present — pass '--device /dev/bus/usb/...' (or mount it)" >&2
+fi
+
+upsdrvctl start
+upsd
+exec upsmon -D
