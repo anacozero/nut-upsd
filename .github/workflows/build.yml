@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6
 
       - name: Bump patch version
         id: bump
@@ -34,7 +34,10 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "Version $new [skip ci]"
-          git push
+          git tag "$new"
+          # Push the version-bump commit and its tag together (restores the
+          # per-version tag the old bump-version action created).
+          git push origin "HEAD:${GITHUB_REF_NAME}" "refs/tags/$new"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -71,3 +74,14 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: true
           sbom: true
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          gh release create "$VERSION" \
+            --verify-tag \
+            --title "$VERSION" \
+            --generate-notes \
+            --notes "Container image: \`ghcr.io/${{ github.repository }}:${VERSION}\`"
